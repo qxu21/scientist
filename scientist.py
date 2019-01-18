@@ -24,7 +24,7 @@ async def ward(ctx, cmdname):
             continue
         if c.guild.id == ctx.guild.id:
             location_channel_names.append(c.mention)
-    await ctx.send("?{}} can only be used in the location channels: {}.".format(
+    await ctx.send("?{} can only be used in the location channels: {}.".format(
         cmdname, xyandz(location_channel_names)))
 
 def xyandz(l):
@@ -57,7 +57,7 @@ class Scientist(commands.Bot):
             }
         }
         self.is_rp = False
-        self.close_rp_callback = None
+        self.close_rp_callbacks = {}
         self.remove_command("help")
         self.add_command(location)
         self.add_command(invite)
@@ -79,9 +79,9 @@ class Scientist(commands.Bot):
                 and len(msg.guild.get_role(self.location_channels[msg.channel.id]["owner_role_id"]).members) != 0
                 and not msg.content.startswith("?close")
             ):
-            if self.close_rp_callback is not None:
-                self.close_rp_callback.cancel()
-            self.close_rp_callback = self.loop.create_task(close_rp_timeout(msg.guild, msg.channel))
+            if msg.channel.id in self.close_rp_callbacks and self.close_rp_callbacks[msg.channel.id] is not None:
+                self.close_rp_callbacks[msg.channel.id].cancel()
+            self.close_rp_callbacks[msg.channel.id] = self.loop.create_task(close_rp_timeout(self, msg.guild, msg.channel))
         await self.process_commands(msg)
 
 async def run(token):
@@ -97,13 +97,16 @@ async def rolelist(ctx):
     await ctx.send("\n".join(["{}: {}".format(r.name,r.id) for r in ctx.guild.roles]))
 
 @commands.command()
-async def location(ctx, *, location):
+async def location(ctx, *, location=None):
     if ctx.channel.id not in ctx.bot.location_channels:
         await ward(ctx,"location")
         return
     lowner_role = ctx.guild.get_role(ctx.bot.location_channels[ctx.channel.id]["owner_role_id"])
     if len(lowner_role.members) != 0:
         await ctx.send("There is already an RP in progress. Please wait until it is closed or 10 minutes of inactivity pass.")
+        return
+    if location == "" or location is None:
+        await ctx.send("Please specify a location in your command, such as `?location A peaceful lake`.")
         return
     await ctx.author.add_roles(lowner_role,reason="?location invoked")
     await ctx.channel.edit(topic=location,reason="?location invoked")
@@ -137,19 +140,19 @@ async def close(ctx):
     if ctx.guild.get_role(ctx.bot.location_channels[ctx.channel.id]["owner_role_id"]) not in ctx.author.roles:
         await ctx.send("You are not the owner of this channel and may not close it.")
         return
-    ctx.bot.close_rp_callback.cancel()
-    await close_rp(ctx.guild.id, ctx.channel.id, True)
+    ctx.bot.close_rp_callbacks[ctx.channel.id].cancel()
+    await close_rp(ctx.bot, ctx.guild, ctx.channel, True)
 
-async def close_rp_timeout(guild, channel):
+async def close_rp_timeout(bot, guild, channel):
     await asyncio.sleep(600)
-    await close_rp(guild, channel, False)
+    await close_rp(bot, guild, channel, False)
 
-async def close_rp(guild, channel, closed):
+async def close_rp(bot, guild, channel, closed):
     if closed:
         reason = "?close invoked"
     else:
         reason = "RP timed out"
-    for r in (guild.get_role(lowner_role_id),guild.get_role(lpart_role_id)):
+    for r in (guild.get_role(bot.location_channels[channel.id]["owner_role_id"]),guild.get_role(bot.location_channels[channel.id]["part_role_id"])):
         for m in r.members:
             await m.remove_roles(r,reason=reason)
     await channel.set_permissions(guild.default_role, send_messages=None, reason=reason)

@@ -17,9 +17,9 @@ import asyncio
         return ", ".join(s[:-1]) + "and " + s[-1]"""
 async def ward(ctx, cmdname):
     location_channel_names = []
-    for k in self.location_channels:
+    for k in ctx.bot.location_channels:
         try:
-            c = self.get_channel(k)
+            c = ctx.bot.get_channel(k)
         except:
             continue
         if c.guild.id == ctx.guild.id:
@@ -98,10 +98,10 @@ async def rolelist(ctx):
 
 @commands.command()
 async def location(ctx, *, location):
-    if ctx.channel.id not in self.location_channels:
+    if ctx.channel.id not in ctx.bot.location_channels:
         await ward(ctx,"location")
         return
-    lowner_role = ctx.guild.get_role(self.location_channels[ctx.channel.id]["owner_role_id"])
+    lowner_role = ctx.guild.get_role(ctx.bot.location_channels[ctx.channel.id]["owner_role_id"])
     if len(lowner_role.members) != 0:
         await ctx.send("There is already an RP in progress. Please wait until it is closed or 10 minutes of inactivity pass.")
         return
@@ -115,26 +115,26 @@ async def location(ctx, *, location):
 
 @commands.command()
 async def invite(ctx, members: commands.Greedy[discord.Member]):
-    if ctx.channel.id not in self.location_channels:
+    if ctx.channel.id not in ctx.bot.location_channels:
         await ward(ctx,"invite")
         return
-    if ctx.guild.get_role(self.location_channels[ctx.channel.id]["owner_role_id"]) not in ctx.author.roles:
+    if ctx.guild.get_role(ctx.bot.location_channels[ctx.channel.id]["owner_role_id"]) not in ctx.author.roles:
         await ctx.send("You are not the owner of this channel and may not invite others.")
         return
     if len(members) == 0:
         await ctx.send("You must invite nations with `?invite @NATION1 @NATION2...`")
         return
     for m in members:
-        await m.add_roles(ctx.guild.get_role(self.location_channels[ctx.channel.id]["part_role_id"]),reason="?invite invoked")
+        await m.add_roles(ctx.guild.get_role(ctx.bot.location_channels[ctx.channel.id]["part_role_id"]),reason="?invite invoked")
     await ctx.send("Added {} to the RP.".format(xyandz([m.mention for m in members])))
 
 
 @commands.command()
 async def close(ctx):
-    if ctx.channel.id not in self.location_channels:
+    if ctx.channel.id not in ctx.bot.location_channels:
         await ward(ctx,"close")
         return
-    if ctx.guild.get_role(self.location_channels[ctx.channel.id]["owner_role_id"]) not in ctx.author.roles:
+    if ctx.guild.get_role(ctx.bot.location_channels[ctx.channel.id]["owner_role_id"]) not in ctx.author.roles:
         await ctx.send("You are not the owner of this channel and may not close it.")
         return
     ctx.bot.close_rp_callback.cancel()

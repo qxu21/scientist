@@ -126,7 +126,7 @@ async def rolelist(ctx):
     rl = "\n".join(["{}: {}".format(r.name,r.id) for r in ctx.guild.roles])
     if len(rl) < 2000:
         await ctx.send(rl)
-    with open(os.path.join("id_lists",ctx.guild.id + ".txt"), 'w') as f:
+    with open(os.path.join("id_lists",str(ctx.guild.id) + ".txt"), 'w') as f:
         f.write(rl)
 
 @commands.command()

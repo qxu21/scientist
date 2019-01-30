@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import scientist_config
 import asyncio
+import os
 
 #BOT GOALS:
 #!location to set Location topic

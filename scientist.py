@@ -94,7 +94,11 @@ async def run(token):
 @commands.command()
 @commands.is_owner()
 async def rolelist(ctx):
-    await ctx.send("\n".join(["{}: {}".format(r.name,r.id) for r in ctx.guild.roles]))
+    rl = "\n".join(["{}: {}".format(r.name,r.id) for r in ctx.guild.roles])
+    if len(rl) < 2000:
+        await ctx.send(rl)
+    with open(os.path.join("id_lists",ctx.guild.id + ".txt"), 'w') as f:
+        f.write(rl)
 
 @commands.command()
 async def location(ctx, *, location=None):
@@ -155,7 +159,7 @@ async def close_rp(bot, guild, channel, closed):
     for r in (guild.get_role(bot.location_channels[channel.id]["owner_role_id"]),guild.get_role(bot.location_channels[channel.id]["part_role_id"])):
         for m in r.members:
             await m.remove_roles(r,reason=reason)
-    await channel.set_permissions(guild.default_role, send_messages=None, reason=reason)
+    await channel.set_permissions(guild.default_role, send_messages=False, reason=reason)
     await channel.edit(topic="Use ?location followed by a location description to initiate an RP.",reason=reason)
     await channel.send("RP closed. Please use ?location followed by a location description to initiate a new RP. All other messages will be deleted.")
 

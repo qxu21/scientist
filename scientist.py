@@ -188,7 +188,7 @@ async def close_rp(bot, guild, channel, closed):
     for r in (guild.get_role(bot.location_channels[channel.id]["owner_role_id"]),guild.get_role(bot.location_channels[channel.id]["part_role_id"])):
         for m in r.members:
             await m.remove_roles(r,reason=reason)
-    await channel.set_permissions(guild.default_role, send_messages=False, reason=reason)
+    await channel.set_permissions(guild.default_role, send_messages=None, reason=reason)
     await channel.edit(topic="Use ?location followed by a location description to initiate an RP.",reason=reason)
     await channel.send("RP closed. Please use ?location followed by a location description to initiate a new RP. All other messages will be deleted.")
 

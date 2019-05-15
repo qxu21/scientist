@@ -3,6 +3,10 @@ from discord.ext import commands
 import scientist_config
 import asyncio
 import os
+import aiohttp
+import xml.etree.ElementTree as ET
+import random
+import datetime
 
 #BOT GOALS:
 #!location to set Location topic
@@ -92,6 +96,58 @@ class Scientist(commands.Bot):
         self.add_command(invite)
         self.add_command(close)
         self.add_command(rolelist)
+        self.managed_nations = [scientist_config.tge_election]
+        next_midnight = datetime.datetime.utcnow().replace(hour=23,minute=59,tzinfo=datetime.timezone.utc).timestamp()
+        self.loop.call_at(next_midnight,issue)
+
+    async def issue(self):
+        # check for new issue
+        async with aiohttp.ClientSession() as h:
+            for nation in self.managed_nations:
+                channel = self.get_channel(nation["channel"])
+                async with h.get("https://www.nationstates.net/cgi-bin/api.cgi?nation={}&q=issues".format(nation.name),
+                    headers = {
+                    "X-Autologin":nation.autologin,
+                    "X-Pin":nation.pin}) as issue_r:
+                    # GET THE FRIGGIN PIN
+                    issues_t = await issue_r.text('utf-8')
+                    issues_x = ET.fromstring(ir_t)
+                    for issue in issues_x.get("ISSUES").iter():
+                        if issue.get("id",default=None) != nation["current_issue_id"]:
+                            # we haven't seen this issue before
+                            if nation["current_issue_id"] != None:
+                                # we have an old issue to be replaced by this one
+                                # resolve current issue:
+                                weights = []
+                                for i in nation["option_msg_ids"]:
+                                    r_count = self.get_message(i).reactions[0].count #assuming there's only one reaction
+                                    weights.append(r_count)
+                                choice = random.choices(range(0,len(weights)),weights)
+                                async with h.post("https://www.nationstates.net/cgi-bin/api.cgi",
+                                    headers={
+                                        "X-Autologin":nation.autologin,
+                                        "X-Pin":nation.pin
+                                    },
+                                    data="nation={}&c=issue&issue={}&option={}".format(
+                                        nation.name,
+                                        nation.current_issue_id,
+                                        choice)) as issue_a:
+                                    issues_a = await issue_a.text('utf-8')
+                                    issues_a_x = ET.fromstring(issues_a)
+                                    # PRINT INTO A MESSAGE
+                                await channel.send("**OPTION {} CHOSEN**. In the future, data will be sent here.".format(choice+1))
+                                nation["current_issue_id"] = None
+                            else:
+                                # we need to make this our current issue and post it
+                                nation["current_issue_id"] = issue.get("id")
+                                await channel.send("**{}**\n\n{}".format(issue.find("TITLE").text,issue.find("TEXT").text))
+                                for option in issue.findall("OPTION"):
+                                    msg = await channel.send("OPTION {}:{}".format(option.get("id")+1, option.text))
+                                    nation["option_msg_ids"].append(msg.id)
+                            break #if we have a ton of issues, chill out on them
+                        else:
+                            # we have seen this issue before
+        self.loop.call_at()
 
     async def on_message(self, msg):
         if (
@@ -112,6 +168,10 @@ class Scientist(commands.Bot):
                 self.close_rp_callbacks[msg.channel.id].cancel()
             self.close_rp_callbacks[msg.channel.id] = self.loop.create_task(close_rp_timeout(self, msg.guild, msg.channel))
         await self.process_commands(msg)
+
+    #async def on_reaction_add(self, reaction, user):
+    #    if reaction.message.channel.id == 505141941348859904:
+    #        if reaction.
 
 async def run(token):
     scientist = Scientist()
@@ -180,6 +240,20 @@ async def close_rp_timeout(bot, guild, channel):
     await asyncio.sleep(600)
     await close_rp(bot, guild, channel, False)
 
+@commands.command()
+async def approve(ctx, member: discord.Member):
+    # oh lord time for some hardcoding to get this up asap
+    async for m in ctx.bot.get_channel(505141941348859904).history(after=ctx.message.created_at - datetime.timedelta(minutes=10),oldest_first=False):
+        if m.author.id = member.id and member.mention in m.raw_mentions:
+            await m.add_reaction("🛡️")
+            await ctx.send(f"{m.author.mention}, your message addressing {member.mention} has been approved!")
+            return
+    await ctx.send("Could not find a events post by that member.")
+
+
+
+
+
 async def close_rp(bot, guild, channel, closed):
     if closed:
         reason = "?close invoked"
@@ -191,7 +265,6 @@ async def close_rp(bot, guild, channel, closed):
     await channel.set_permissions(guild.default_role, send_messages=None, reason=reason)
     await channel.edit(topic="Use ?location followed by a location description to initiate an RP.",reason=reason)
     await channel.send("RP closed. Please use ?location followed by a location description to initiate a new RP. All other messages will be deleted.")
-
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(run(scientist_config.token))

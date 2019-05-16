@@ -96,11 +96,13 @@ class Scientist(commands.Bot):
         self.add_command(invite)
         self.add_command(close)
         self.add_command(rolelist)
-        self.managed_nations = [scientist_config.tge_election]
-        next_midnight = datetime.datetime.utcnow().replace(hour=23,minute=59,tzinfo=datetime.timezone.utc).timestamp()
-        self.loop.call_at(next_midnight,issue)
+        self.add_command(approve)
+        self.add_command(ticket)
+        #self.managed_nations = [scientist_config.tge_election]
+        #next_midnight = datetime.datetime.utcnow().replace(hour=23,minute=59,tzinfo=datetime.timezone.utc).timestamp()
+        #self.loop.call_at(next_midnight,issue)
 
-    async def issue(self):
+    """async def issue(self):
         # check for new issue
         async with aiohttp.ClientSession() as h:
             for nation in self.managed_nations:
@@ -147,7 +149,7 @@ class Scientist(commands.Bot):
                             break #if we have a ton of issues, chill out on them
                         else:
                             # we have seen this issue before
-        self.loop.call_at()
+        self.loop.call_at()"""
 
     async def on_message(self, msg):
         if (
@@ -242,17 +244,38 @@ async def close_rp_timeout(bot, guild, channel):
 
 @commands.command()
 async def approve(ctx, member: discord.Member):
-    # oh lord time for some hardcoding to get this up asap
+    # oh lord time for some hardcoding to get this up asap EVENTS IS 505141941348859904
     async for m in ctx.bot.get_channel(505141941348859904).history(after=ctx.message.created_at - datetime.timedelta(minutes=10),oldest_first=False):
-        if m.author.id = member.id and member.mention in m.raw_mentions:
-            await m.add_reaction("🛡️")
+        if m.author.id == member.id and ctx.author.id in m.raw_mentions:
+            await m.add_reaction("🛡")
             await ctx.send(f"{m.author.mention}, your message addressing {member.mention} has been approved!")
             return
     await ctx.send("Could not find a events post by that member.")
 
-
-
-
+@commands.command()
+async def ticket(ctx):
+    mod_role = ctx.guild.get_role(298280102746259466)
+    sci_role = ctx.guild.get_role(513990148338352128)
+    ticket = await ctx.guild.create_text_channel(
+        name=datetime.datetime.utcnow().isoformat(),
+        overwrites={
+            ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+            mod_role: discord.PermissionOverwrite(read_messages=True,manage_channels=True), #mods
+            sci_role: discord.PermissionOverwrite(read_messages=True,manage_channels=True), #scientist itself
+            ctx.author: discord.PermissionOverwrite(read_messages=True)
+        },
+        category=ctx.guild.categories[4], #oh no my hardcoding
+        position=0,
+        topic=f"Ticket created by {ctx.author.name}",
+        reason="opening ticket"
+    )
+    await ticket.send(f"Ticket created by {ctx.author.mention}. A mod will be with you shortly, __please do not ping anyone unless it's an emergency.__")
+    await ctx.bot.wait_for('message', check=lambda m: m.author.top_role == mod_role and m.channel == ticket and m.content == "?close_ticket")
+    for target in ticket.overwrites:
+        #print(target.id)
+        if target.id not in (mod_role.id, sci_role.id,ctx.guild.default_role.id):
+            await ticket.set_permissions(target, overwrite=None,reason="closing ticket")
+    await ticket.send("Ticket closed.")
 
 async def close_rp(bot, guild, channel, closed):
     if closed:

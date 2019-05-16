@@ -170,7 +170,7 @@ class Scientist(commands.Bot):
                 self.close_rp_callbacks[msg.channel.id].cancel()
             self.close_rp_callbacks[msg.channel.id] = self.loop.create_task(close_rp_timeout(self, msg.guild, msg.channel))
         elif msg.author.id != 513989250283208714 and msg.channel.id == 578383389812588546:
-            await msg.channel.send(f"{msg.author.nick}: {msg.content}")
+            await msg.channel.send(f"{msg.author.display_name}: {msg.content}")
             await msg.delete()
         await self.process_commands(msg)
 
@@ -268,17 +268,40 @@ async def ticket(ctx):
             ctx.author: discord.PermissionOverwrite(read_messages=True)
         },
         category=ctx.guild.categories[4], #oh no my hardcoding
-        position=0,
-        topic=f"Ticket created by {ctx.author.name}",
-        reason="opening ticket"
+        reason="opening ticket",
+        topic=f"Ticket created by {ctx.author.display_name}",
+        position=0
     )
     await ticket.send(f"Ticket created by {ctx.author.mention}. A mod will be with you shortly, __please do not ping anyone unless it's an emergency.__")
     await ctx.bot.wait_for('message', check=lambda m: m.author.top_role == mod_role and m.channel == ticket and m.content == "?close_ticket")
-    for target in ticket.overwrites:
+    #for target in ticket.overwrites:
         #print(target.id)
-        if target.id not in (mod_role.id, sci_role.id,ctx.guild.default_role.id):
-            await ticket.set_permissions(target, overwrite=None,reason="closing ticket")
-    await ticket.send("Ticket closed.")
+    #    if target.id not in (mod_role.id, sci_role.id,ctx.guild.default_role.id):
+    #        await ticket.set_permissions(target, overwrite=None,reason="closing ticket")
+    await ticket.send("Archiving ticket.")
+    s = ""
+    async for m in ticket.history(oldest_first=True):
+        if m.edited_at:
+            s += "[{} edited {}] {}: {}".format(
+                m.created_at.isoformat(),
+                m.edited_at.isoformat(),
+                m.author.display_name,
+                m.clean_content)
+        else:
+            s += "[{}] {}: {}".format(
+                m.created_at.isoformat(),
+                m.author.display_name,
+                m.clean_content)
+        if m.attachments:
+            s += "\n[MESSAGE HAS ATTACHMENT]"
+        s += "\n"
+    s = s.replace("\n","\r\n")
+    with open("out.txt", 'w') as f:
+        f.write(s)
+    await ctx.bot.get_channel(309153025644036106).send(
+            file=discord.File(
+                fp="out.txt"))
+    await ticket.delete(reason="closing ticket")
 
 async def close_rp(bot, guild, channel, closed):
     if closed:

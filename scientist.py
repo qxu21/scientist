@@ -96,7 +96,7 @@ class Scientist(commands.Bot):
         self.add_command(invite)
         self.add_command(close)
         self.add_command(rolelist)
-        self.add_command(approve)
+        #self.add_command(approve)
         self.add_command(ticket)
         #self.managed_nations = [scientist_config.tge_election]
         #next_midnight = datetime.datetime.utcnow().replace(hour=23,minute=59,tzinfo=datetime.timezone.utc).timestamp()
@@ -169,6 +169,9 @@ class Scientist(commands.Bot):
             if msg.channel.id in self.close_rp_callbacks and self.close_rp_callbacks[msg.channel.id] is not None:
                 self.close_rp_callbacks[msg.channel.id].cancel()
             self.close_rp_callbacks[msg.channel.id] = self.loop.create_task(close_rp_timeout(self, msg.guild, msg.channel))
+        elif msg.author.id != 513989250283208714 and msg.channel.id == 578383389812588546:
+            await msg.channel.send(f"{msg.author.nick}: {msg.content}")
+            await msg.delete()
         await self.process_commands(msg)
 
     #async def on_reaction_add(self, reaction, user):

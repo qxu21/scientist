@@ -59,35 +59,8 @@ class Scientist(commands.Bot):
             535616180526776321: { #tge alt location
                 "owner_role_id": 535617241530499074,
                 "part_role_id": 535617268806189066
-            }, #here come all the WoN channels
-            537353936466870273: { #phone-call
-                "owner_role_id": 540005084642148353,
-                "part_role_id": 540005116086845440
-            },
-            524350719982043156: { #phone-call-2
-                "owner_role_id": 540005144570363905,
-                "part_role_id": 540005175687905292
-            },
-            537050126775091220: { #state-visit-discussion
-                "owner_role_id":540005217660436510,
-                "part_role_id":540005244969549845
-            },
-            537037071743844363: { #state-visit-2
-                "owner_role_id":540005281674035211,
-                "part_role_id":540005308416917505
-            },
-            538423238921814017: { #rp-event
-                "owner_role_id":540004919415930911,
-                "part_role_id":540004973925367829
-            },
-            526562952002666507: { #meeting-room
-                "owner_role_id":540005349701189642,
-                "part_role_id":540005440592019467
-            },
-            532950833420042280: { #meeting-room-2
-                "owner_role_id": 540005479271759882,
-                "part_role_id": 540005509785190400
             }
+            #NOTE - CHANNELS SCIENTIST CANNOT SEE CAUSE ward() TO CRASH
         }
         self.is_rp = False
         self.close_rp_callbacks = {}
